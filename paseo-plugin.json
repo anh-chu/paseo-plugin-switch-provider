@@ -7,6 +7,7 @@
     "assets/screenshot-providers.png",
     "assets/screenshot-models.png"
   ],
+  "build": [["npm", "ci", "--omit=dev", "--ignore-scripts"]],
   "requirements": {
     "paseo": ">=0.11.2"
   }
