@@ -4,8 +4,8 @@
   "description": "Continue an agent session on another provider and model, keeping the full history.",
   "icon": "assets/icon.png",
   "media": [
-    "assets/screenshot-providers.png",
-    "assets/screenshot-models.png"
+    "assets/screenshot-command-center.png",
+    "assets/screenshot-switched.png"
   ],
   "build": [["npm", "ci", "--omit=dev", "--ignore-scripts"]],
   "requirements": {
