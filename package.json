@@ -1,6 +1,6 @@
 {
   "name": "paseo-plugin-switch-provider",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Continue a Paseo agent session on another provider and model, keeping the full history.",
   "author": "anh-chu",
   "license": "MIT",
@@ -10,6 +10,7 @@
   },
   "files": [
     "paseo-plugin.json",
+    "npm-shrinkwrap.json",
     "OVERVIEW.md",
     "README.md",
     "LICENSE",
