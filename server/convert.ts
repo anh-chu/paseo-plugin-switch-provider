@@ -8,6 +8,7 @@ import type { RpcInput } from "@getpaseo/plugin";
 import type { PluginHandlerContext } from "@getpaseo/plugin/server";
 import { createRequire } from "node:module";
 import type { switchSession } from "../shared/convert";
+import { compact } from "./compact";
 import { importAgent } from "./daemon";
 import { importIntoOpenCode, readOpenCodeSession } from "./opencode";
 import { exportAgentTranscript } from "./transcript";
@@ -80,10 +81,20 @@ function targetPath(provider: string, cwd: string, id: string, iso: string) {
 // OpenCode keeps sessions in a database, so it is read with `opencode session export` and written with `opencode session import`.
 const convertible = (from: string, to: string) => (from in HARNESS || from === "opencode") && (to in HARNESS || to === "opencode");
 
+// ponytail: Codex and Copilot report no context size, so assume 200K for them. A table of known sizes would be tighter.
+const DEFAULT_WINDOW = 200_000;
+
+async function targetWindow(paseo: PluginHandlerContext["paseo"], provider: string, modelId: string) {
+  const { entries } = await paseo.providers.snapshot();
+  const model = entries.find((entry) => entry.provider === provider)?.models?.find((m) => m.id === modelId || m.aliases?.includes(modelId));
+  return model?.contextWindowMaxTokens ?? DEFAULT_WINDOW;
+}
+
 async function convertAndImport(
   snapshot: { provider: string; cwd: string; workspaceId?: string | null; persistence: { sessionId: string } },
   provider: string,
   modelId: string,
+  window: number,
 ) {
   const { cwd } = snapshot;
   log(`reading ${snapshot.provider} session`);
@@ -94,6 +105,12 @@ async function convertAndImport(
     const source = await locateSource(snapshot.provider, snapshot.persistence.sessionId);
     if (!source) throw new Error(`Could not find the ${snapshot.provider} session file for ${snapshot.persistence.sessionId}`);
     common = JSON.parse((await txcript()).toCommon(await readFile(source, "utf8"), HARNESS[snapshot.provider]));
+  }
+  // Leave room for the new provider's own instructions and tools, and for the work still to come.
+  const compacted = await compact(common, Math.floor(window * 0.6));
+  if (compacted) {
+    common = compacted.common;
+    log(`compacted about ${compacted.beforeTokens} to ${compacted.afterTokens} tokens for a ${window} token window`);
   }
   log(`writing ${provider} session`);
   let sessionId: string;
@@ -128,7 +145,8 @@ export async function switchAgentSession(
   const { persistence, cwd } = snapshot;
   if (convertible(snapshot.provider, provider)) {
     if (!persistence) throw new Error("The source agent has no saved session yet; send it a message first");
-    const id = await convertAndImport({ provider: snapshot.provider, cwd, workspaceId: snapshot.workspaceId, persistence }, provider, modelId);
+    const window = await targetWindow(paseo, provider, modelId);
+    const id = await convertAndImport({ provider: snapshot.provider, cwd, workspaceId: snapshot.workspaceId, persistence }, provider, modelId, window);
     return { agentId: id, method: "converted" as const };
   }
   const { path } = await exportAgentTranscript({ agentId }, context);
