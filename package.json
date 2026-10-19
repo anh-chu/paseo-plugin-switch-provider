@@ -1,7 +1,7 @@
 {
   "name": "paseo-plugin-switch-provider",
   "version": "0.2.1",
-  "description": "Continue a Paseo agent session on another provider and model, keeping the full history.",
+  "description": "Continue a Paseo agent session on another provider and model, compacting large histories with links to a saved transcript.",
   "author": "anh-chu",
   "license": "MIT",
   "repository": {
